@@ -447,12 +447,13 @@ impl Protocol {
                         err: format!("{:?}", err),
                     })?;
 
-                if message.is_array() {
-                    message
-                } else {
-                    return Err(ProtocolError::ParseFail {
-                        err: "Body is not an array".to_owned(),
-                    });
+                match message {
+                    serde_cbor::Value::Array(_) => message,
+                    _ => {
+                        return Err(ProtocolError::ParseFail {
+                            err: "Body is not an array".to_owned(),
+                        });
+                    },
                 }
             }
             1 => {

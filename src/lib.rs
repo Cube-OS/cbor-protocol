@@ -52,7 +52,7 @@ use serde_cbor::de;
 use std::io;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::Duration;
-use stream::Stream;
+use hal_stream::Stream;
 
 /// An error generated during protocol execution
 #[derive(Debug, Fail)]

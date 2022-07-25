@@ -97,7 +97,10 @@ pub struct Protocol<T> {
     msg_size: usize,
 }
 
-impl <T: Stream> Protocol<T> {
+impl <T: Stream> Protocol<T> 
+where 
+    std::io::Error: From<<T as Stream>::StreamError>,
+{
     /// Binds a UDP listener socket and saves it in a new protocol instance
     ///
     /// # Arguments
@@ -166,7 +169,7 @@ impl <T: Stream> Protocol<T> {
 
         self.handle
             .write(payload)
-            .map_err(|err| ProtocolError::SendFailed { err })?;
+            .map_err(|err| ProtocolError::SendFailed { err: err.into() })?;
         Ok(())
     }
 
@@ -196,7 +199,7 @@ impl <T: Stream> Protocol<T> {
         let payload = vec![1];
         self.handle
             .write(payload)
-            .map_err(|err| ProtocolError::SendFailed { err })?;
+            .map_err(|err| ProtocolError::SendFailed { err: err.into() })?;
         Ok(())
     }
 
@@ -226,7 +229,7 @@ impl <T: Stream> Protocol<T> {
         let payload = vec![2];
         self.handle
             .write(payload)
-            .map_err(|err| ProtocolError::SendFailed { err })?;
+            .map_err(|err| ProtocolError::SendFailed { err: err.into() })?;
         Ok(())
     }
 
@@ -252,7 +255,7 @@ impl <T: Stream> Protocol<T> {
         self.recv_start(&self
             .handle
             .read(&mut buf, self.msg_size)
-            .map_err(|err| ProtocolError::ReceiveFailed { err })?)
+            .map_err(|err| ProtocolError::ReceiveFailed { err: err.into() })?)
     }
 
     /// Receive a UDP message (with timeout)
@@ -291,7 +294,7 @@ impl <T: Stream> Protocol<T> {
         // Set the timeout for this particular receive
         // self.handle
         //     .set_read_timeout(Some(timeout))
-        //     .map_err(|err| ProtocolError::IoError { err })?;
+        //     .map_err(|err| ProtocolError::IoError { err: err.into() })?;
 
         let mut buf = vec![0; self.msg_size];
 
@@ -299,10 +302,13 @@ impl <T: Stream> Protocol<T> {
 
         match result {
             Ok(data) => return Ok(self.recv_start(&data)?),
-            Err(err) => match err.kind() {
-                // For some reason, UDP recv returns WouldBlock for timeouts
-                ::std::io::ErrorKind::WouldBlock => return Err(ProtocolError::Timeout),
-                _ => return Err(ProtocolError::ReceiveFailed { err }),
+            Err(err) => {
+                let e = io::Error::from(err);
+                match e.kind() {
+                    // For some reason, UDP recv returns WouldBlock for timeouts
+                    ::std::io::ErrorKind::WouldBlock => return Err(ProtocolError::Timeout),
+                    _ => return Err(ProtocolError::ReceiveFailed { err: e }),
+                }
             }
         }
     }

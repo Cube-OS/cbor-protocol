@@ -92,12 +92,14 @@ pub enum ProtocolError {
 }
 
 /// CBOR protocol communication structure
+/// 
+#[derive(Debug)]
 pub struct Protocol<T> {
     handle: T,
     msg_size: usize,
 }
 
-impl <T: Stream> Protocol<T> 
+impl <T: Stream + std::fmt::Debug> Protocol<T> 
 where 
     std::io::Error: From<<T as Stream>::StreamError>,
 {
